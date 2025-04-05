@@ -4,10 +4,10 @@ A dynamic and interactive web-based tool designed to help users calculate, visua
 
 
 <!-- Optional: Add a link to a live demo if you deploy it -->
-<!-- [Live Demo](your-live-demo-link-here) -->
+[Live Demo](https://manyan-chan.github.io/Financial-Loan-Calculator)
 
 <!-- Optional: Add a screenshot -->
-<!-- ![Screenshot of the Loan Calculator](path/to/screenshot.png) -->
+![Screenshot of the Loan Calculator](screenshot.png)
 
 ## Description
 
