@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Loan Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Changed to 'class' for manual/preference control if needed, works with prefers-color-scheme
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        primary_light: '#7776E3',
+                        primary_dark: '#4847B3',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 7px;
+            background: #e2e8f0;
+            /* Default light track */
+            border-radius: 5px;
+            background-image: linear-gradient(var(--primary-color, #5D5CDE), var(--primary-color, #5D5CDE));
+            /* Use CSS var for color */
+            background-repeat: no-repeat;
+            cursor: pointer;
+            /* Add cursor */
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--primary-color, #5D5CDE);
+            /* Use CSS var for color */
+            cursor: pointer;
+            box-shadow: 0 0 2px 0 #555;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            /* Firefox Thumb */
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--primary-color, #5D5CDE);
+            cursor: pointer;
+            box-shadow: 0 0 2px 0 #555;
+            border: none;
+            /* Remove default border */
+        }
+
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            -webkit-appearance: none;
+            box-shadow: none;
+            border: none;
+            background: transparent;
+            /* Track itself is transparent, background-image does the work */
+        }
+
+        input[type="range"]::-moz-range-track {
+            /* Firefox Track */
+            box-shadow: none;
+            border: none;
+            background: transparent;
+            height: 7px;
+            border-radius: 5px;
+        }
+
+        /* Dark mode track base color */
+        .dark input[type="range"] {
+            background: #4a5568;
+            /* Default dark track */
+        }
+
+        .card {
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .dark .tooltip .tooltip-text {
+            background-color: #eee;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-primary dark:text-primary_light mb-2">
+                Financial Loan Calculator
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400">
+                Calculate, visualize, and compare loan scenarios with precision
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Main Calculator Section -->
+            <div class="col-span-1 md:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card">
+                    <h2 class="text-xl font-semibold mb-4 text-primary dark:text-primary_light">
+                        Loan Parameters
+                    </h2>
+
+                    <!-- Loan Amount Slider -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="loanAmount" class="font-medium">Loan Amount</label>
+                            <div class="tooltip">
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-base">
+                                    $<span id="loanAmountDisplay">250,000</span>
+                                </span>
+                                <span class="tooltip-text">The total amount you plan to borrow</span>
+                            </div>
+                        </div>
+                        <input type="range" id="loanAmount" min="10000" max="1000000" step="1000" value="250000"
+                            class="w-full" oninput="updateSliderVisuals(this)">
+                        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <span>$10,000</span>
+                            <span>$1,000,000</span>
+                        </div>
+                    </div>
+
+                    <!-- Interest Rate Slider -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="interestRate" class="font-medium">Interest Rate (%)</label>
+                            <div class="tooltip">
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-base">
+                                    <span id="interestRateDisplay">4.5</span>%
+                                </span>
+                                <span class="tooltip-text">Annual interest rate on your loan</span>
+                            </div>
+                        </div>
+                        <input type="range" id="interestRate" min="0.1" max="15" step="0.1" value="4.5" class="w-full"
+                            oninput="updateSliderVisuals(this)">
+                        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <span>0.1%</span>
+                            <span>15%</span>
+                        </div>
+                    </div>
+
+                    <!-- Loan Term Slider -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="loanTerm" class="font-medium">Loan Term (Years)</label>
+                            <div class="tooltip">
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-base">
+                                    <span id="loanTermDisplay">30</span> years
+                                </span>
+                                <span class="tooltip-text">Length of time to repay the loan</span>
+                            </div>
+                        </div>
+                        <input type="range" id="loanTerm" min="1" max="40" step="1" value="30" class="w-full"
+                            oninput="updateSliderVisuals(this)">
+                        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <span>1 year</span>
+                            <span>40 years</span>
+                        </div>
+                    </div>
+
+                    <!-- Extra Payment Section -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium">Extra Payments</h3>
+                            <div class="relative">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <!-- Keep onchange here to directly toggle the section visibility -->
+                                    <input type="checkbox" id="extraPaymentToggle" class="sr-only peer" checked
+                                        onchange="handleExtraPaymentToggle()">
+                                    <div
+                                        class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary">
+                                    </div>
+                                    <span class="ml-3 text-sm font-medium">Include</span>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Initial state should match checkbox -->
+                        <div id="extraPaymentSection">
+                            <div class="mb-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label for="extraPayment" class="font-medium">Monthly Extra Payment</label>
+                                    <div class="tooltip">
+                                        <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-base">
+                                            $<span id="extraPaymentDisplay">100</span>
+                                        </span>
+                                        <span class="tooltip-text">Extra amount paid each month toward principal</span>
+                                    </div>
+                                </div>
+                                <input type="range" id="extraPayment" min="0" max="2000" step="10" value="100"
+                                    class="w-full" oninput="updateSliderVisuals(this)">
+                                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                                    <span>$0</span>
+                                    <span>$2,000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison section -->
+                <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-primary dark:text-primary_light">
+                            Loan Comparison
+                        </h2>
+                        <button id="addComparisonBtn"
+                            class="py-2 px-4 bg-primary hover:bg-primary_dark dark:bg-primary_light dark:hover:bg-primary text-white rounded-md transition-colors">
+                            Save Current Settings
+                        </button>
+                    </div>
+                    <div id="comparisonTableContainer" class="overflow-x-auto">
+                        <table id="comparisonTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Scenario</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Loan Amount</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Interest Rate</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Term</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Monthly Payment</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Total Interest</th>
+                                    <th scope="col"
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comparisonTableBody"
+                                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Table rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noComparisonMessage" class="text-center py-4 text-gray-500 dark:text-gray-400">
+                        No comparisons added yet. Save current settings to add a comparison.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="col-span-1">
+                <div class="sticky top-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6 card">
+                        <h2 class="text-xl font-semibold mb-4 text-primary dark:text-primary_light">
+                            Payment Summary
+                        </h2>
+
+                        <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Monthly Payment</p>
+                            <p class="text-3xl font-bold" id="monthlyPayment">$1,266.71</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden" id="extraPaymentInfo">
+                                <!-- Initially hidden -->
+                                + $100.00 extra payment
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Loan Amount</p>
+                                <p class="text-xl font-semibold" id="summaryLoanAmount">$250,000</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Interest</p>
+                                <p class="text-xl font-semibold" id="totalInterest">$206,016</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Payments</p>
+                                <p class="text-xl font-semibold" id="totalPayment">$456,016</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Payoff Date</p>
+                                <p class="text-xl font-semibold" id="payoffDate">May 2054</p>
+                            </div>
+                        </div>
+                        <!-- Initially hidden -->
+                        <div id="extraPaymentSavings"
+                            class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 hidden">
+                            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                                <h3 class="font-medium text-green-700 dark:text-green-400 mb-1">With Extra Payments You
+                                    Save:</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">Interest Saved</p>
+                                        <p class="text-lg font-semibold text-green-700 dark:text-green-400"
+                                            id="interestSaved">$32,877</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">Time Saved</p>
+                                        <p class="text-lg font-semibold text-green-700 dark:text-green-400"
+                                            id="timeSaved">4 years, 3 months</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card">
+                        <h2 class="text-xl font-semibold mb-4 text-primary dark:text-primary_light">
+                            Payment Breakdown
+                        </h2>
+                        <div class="mb-6">
+                            <canvas id="paymentChart" height="200"></canvas>
+                        </div>
+                        <h2 class="text-xl font-semibold mb-4 text-primary dark:text-primary_light">
+                            Amortization
+                        </h2>
+                        <div>
+                            <canvas id="amortizationChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Amortization Schedule Section -->
+        <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                <h2 class="text-xl font-semibold text-primary dark:text-primary_light">
+                    Amortization Schedule
+                </h2>
+                <div class="flex gap-2">
+                    <!-- FIX: Renamed button ID -->
+                    <button id="amortizationToggleSavingsBtn"
+                        class="py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md transition-colors">
+                        Show Savings
+                    </button>
+                    <button id="toggleDetailedView"
+                        class="py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md transition-colors">
+                        Detailed View
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" id="amortHeaderPeriod"
+                                class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Year</th>
+                            <th scope="col"
+                                class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Principal</th>
+                            <th scope="col"
+                                class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Interest</th>
+                            <th scope="col"
+                                class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Balance</th>
+                            <!-- FIX: Savings header initially hidden -->
+                            <th scope="col" id="savingsHeader"
+                                class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider hidden">
+                                Balance w/ Extra Pmt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="amortizationTableBody"
+                        class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <!-- Table rows will be inserted here -->
+                    </tbody>
+                </table>
+                <div id="amortDetailedNote"
+                    class="px-3 py-2 text-center text-sm italic text-gray-500 dark:text-gray-400 hidden">
+                    Showing first 12 months only. Switch to Yearly View to see full schedule.
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>Created with Chart.js and TailwindCSS</p>
+            <p class="mt-1">© 2024 Financial Loan Calculator</p> <!-- Updated year -->
+        </footer>
+    </div>
+
+    <script>
+        // Check for initial dark mode preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Optional: Add a button to toggle theme manually
+        // Example: <button onclick="toggleTheme()">Toggle Theme</button>
+        // function toggleTheme() {
+        //    if (localStorage.theme === 'dark') {
+        //        localStorage.theme = 'light';
+        //        document.documentElement.classList.remove('dark');
+        //    } else {
+        //        localStorage.theme = 'dark';
+        //        document.documentElement.classList.add('dark');
+        //    }
+        //    calculateAndUpdateUI(); // Redraw with new theme colors
+        //}
+
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (!('theme' in localStorage)) { // Only react if user hasn't set explicit preference
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                // Update charts when theme changes
+                calculateAndUpdateUI();
+            }
+        });
+
+        // Initialize charts
+        let paymentChart, amortizationChart;
+        let scenarios = [];
+        let nextScenarioId = 1;
+        let isDetailedView = false;
+        let showingSavings = false; // Tracks if the savings column is shown in amortization table
+
+        // --- DOM Elements (Cache for performance) ---
+        const loanAmountSlider = document.getElementById('loanAmount');
+        const interestRateSlider = document.getElementById('interestRate');
+        const loanTermSlider = document.getElementById('loanTerm');
+        const extraPaymentToggle = document.getElementById('extraPaymentToggle');
+        const extraPaymentSlider = document.getElementById('extraPayment');
+        const extraPaymentSection = document.getElementById('extraPaymentSection');
+
+        const loanAmountDisplay = document.getElementById('loanAmountDisplay');
+        const interestRateDisplay = document.getElementById('interestRateDisplay');
+        const loanTermDisplay = document.getElementById('loanTermDisplay');
+        const extraPaymentDisplay = document.getElementById('extraPaymentDisplay');
+
+        const monthlyPaymentDisplay = document.getElementById('monthlyPayment');
+        const extraPaymentInfoDisplay = document.getElementById('extraPaymentInfo');
+        const summaryLoanAmountDisplay = document.getElementById('summaryLoanAmount');
+        const totalInterestDisplay = document.getElementById('totalInterest');
+        const totalPaymentDisplay = document.getElementById('totalPayment');
+        const payoffDateDisplay = document.getElementById('payoffDate');
+        const extraPaymentSavingsSection = document.getElementById('extraPaymentSavings');
+        const interestSavedDisplay = document.getElementById('interestSaved');
+        const timeSavedDisplay = document.getElementById('timeSaved');
+
+        const paymentChartCtx = document.getElementById('paymentChart').getContext('2d');
+        const amortizationChartCtx = document.getElementById('amortizationChart').getContext('2d');
+
+        const amortizationTableBody = document.getElementById('amortizationTableBody');
+        const savingsHeader = document.getElementById('savingsHeader');
+        const amortHeaderPeriod = document.getElementById('amortHeaderPeriod');
+        const amortDetailedNote = document.getElementById('amortDetailedNote');
+
+
+        const comparisonTableBody = document.getElementById('comparisonTableBody');
+        const noComparisonMessageElem = document.getElementById('noComparisonMessage');
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeCharts();
+
+            // FIX: Initialize slider visuals on load
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                updateSliderVisuals(slider, false); // Update visual only, don't recalculate yet
+            });
+
+            // Ensure extra payment section visibility matches checkbox state on load
+            handleExtraPaymentToggle(false); // Update visibility only
+
+            // Calculate and update the UI based on default values
+            calculateAndUpdateUI();
+
+            // Add event listeners
+            // FIX: Removed redundant listener - oninput handles this
+            // document.querySelectorAll('input[type="range"]').forEach(input => {
+            //     input.addEventListener('input', calculateAndUpdateUI);
+            // });
+
+            // Add listener for slider input to trigger calculations
+            document.querySelectorAll('input[type="range"]').forEach(input => {
+                input.addEventListener('input', calculateAndUpdateUI);
+            });
+
+
+            // Listener for extra payment checkbox change (now triggers full UI update)
+            extraPaymentToggle.addEventListener('change', calculateAndUpdateUI);
+
+            // Amortization table view toggle
+            document.getElementById('toggleDetailedView').addEventListener('click', toggleDetailedView);
+
+            // FIX: Listener for the renamed "Show/Hide Savings" button
+            document.getElementById('amortizationToggleSavingsBtn').addEventListener('click', toggleSavingsView);
+
+            // Add comparison button
+            document.getElementById('addComparisonBtn').addEventListener('click', addComparison);
+
+            // Load scenarios from local storage if desired (example)
+            // loadScenariosFromStorage();
+            updateComparisonTable(); // Initial update in case scenarios were loaded
+        });
+
+        // --- Slider Interaction ---
+
+        // FIX: Renamed function for clarity, added dark mode logic
+        // only updates visuals and display text
+        function updateSliderVisuals(slider, triggerCalc = true) {
+            const value = slider.value;
+            const min = slider.min;
+            const max = slider.max;
+            const percentage = ((value - min) / (max - min)) * 100;
+
+            // FIX: Dynamic background color based on theme
+            const isDark = document.documentElement.classList.contains('dark');
+            const trackColor = isDark ? '#4a5568' : '#e2e8f0'; // Dark gray or light gray
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color') || '#5D5CDE';
+
+            slider.style.backgroundImage = `linear-gradient(to right, ${primaryColor} ${percentage}%, ${trackColor} ${percentage}%)`;
+
+            // Update display value
+            const displayId = slider.id + 'Display';
+            const display = document.getElementById(displayId);
+
+            if (display) { // Check if display element exists
+                if (slider.id === 'loanAmount' || slider.id === 'extraPayment') {
+                    display.textContent = Number(value).toLocaleString();
+                } else if (slider.id === 'interestRate') {
+                    display.textContent = parseFloat(value).toFixed(1); // Ensure one decimal place
+                } else {
+                    display.textContent = value;
+                }
+            }
+
+            // Removed calculateAndUpdateUI() call from here - will be triggered by 'input' listener
+            // if (triggerCalc) {
+            //    calculateAndUpdateUI();
+            // }
+        }
+
+        // --- Core Calculation & UI Update ---
+        function calculateAndUpdateUI() {
+            // Get input values
+            const loanAmount = parseFloat(loanAmountSlider.value);
+            const interestRate = parseFloat(interestRateSlider.value);
+            const loanTerm = parseInt(loanTermSlider.value);
+
+            const useExtraPayment = extraPaymentToggle.checked;
+            // Ensure extra payment slider is enabled/disabled based on toggle
+            extraPaymentSlider.disabled = !useExtraPayment;
+            const extraPayment = useExtraPayment ? parseFloat(extraPaymentSlider.value) : 0;
+
+            // Basic validation
+            if (isNaN(loanAmount) || isNaN(interestRate) || isNaN(loanTerm) || loanAmount <= 0 || interestRate <= 0 || loanTerm <= 0) {
+                // Optionally display an error message or reset to defaults
+                console.error("Invalid input values");
+                // Clear results or show error state
+                monthlyPaymentDisplay.textContent = '$ -.--';
+                totalInterestDisplay.textContent = '$ -';
+                totalPaymentDisplay.textContent = '$ -';
+                payoffDateDisplay.textContent = '-';
+                // Clear charts and table maybe?
+                return; // Stop calculation
+            }
+
+
+            // Calculate monthly payment (handle potential division by zero if rate is 0, though min is 0.1)
+            const monthlyInterestRate = interestRate / 100 / 12;
+            const totalPayments = loanTerm * 12;
+            let monthlyPayment = 0;
+
+            if (monthlyInterestRate === 0) { // Handle zero interest rate case
+                monthlyPayment = loanAmount / totalPayments;
+            } else {
+                monthlyPayment = (loanAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, totalPayments)) /
+                    (Math.pow(1 + monthlyInterestRate, totalPayments) - 1);
+            }
+
+            // Update monthly payment display
+            monthlyPaymentDisplay.textContent = '$' + formatCurrency(monthlyPayment);
+
+            // Calculate and display loan details
+            summaryLoanAmountDisplay.textContent = '$' + loanAmount.toLocaleString();
+
+            // Show or hide extra payment info and savings section
+            if (useExtraPayment && extraPayment > 0) {
+                extraPaymentInfoDisplay.textContent = '+ $' + extraPayment.toLocaleString() + ' extra payment';
+                extraPaymentInfoDisplay.classList.remove('hidden');
+                extraPaymentSavingsSection.classList.remove('hidden');
+            } else {
+                extraPaymentInfoDisplay.classList.add('hidden');
+                extraPaymentSavingsSection.classList.add('hidden');
+            }
+
+            // --- Amortization Calculations ---
+            // Calculate schedule without extra payments
+            const standardAmortization = calculateAmortizationSchedule(loanAmount, interestRate, loanTerm, 0, monthlyPayment);
+
+            // Update Total Interest and Total Payment (Standard)
+            const totalInterest = standardAmortization.totalInterest;
+            totalInterestDisplay.textContent = '$' + Math.round(totalInterest).toLocaleString(); // Round for display
+
+            const totalPayment = loanAmount + totalInterest;
+            totalPaymentDisplay.textContent = '$' + Math.round(totalPayment).toLocaleString(); // Round for display
+
+            // Update payoff date (Standard)
+            payoffDateDisplay.textContent = calculatePayoffDate(standardAmortization.months);
+
+            // Calculate schedule with extra payments if enabled
+            let extraPaymentAmortization = null;
+            if (useExtraPayment && extraPayment > 0) {
+                extraPaymentAmortization = calculateAmortizationSchedule(loanAmount, interestRate, loanTerm, extraPayment, monthlyPayment);
+
+                // Calculate savings
+                const interestSaved = standardAmortization.totalInterest - extraPaymentAmortization.totalInterest;
+                interestSavedDisplay.textContent = '$' + Math.round(interestSaved).toLocaleString();
+
+                const monthsSaved = standardAmortization.months - extraPaymentAmortization.months;
+                timeSavedDisplay.textContent = formatMonthsSaved(monthsSaved);
+
+                // Update Payoff date to reflect extra payments if they shorten the term
+                if (extraPaymentAmortization.months < standardAmortization.months) {
+                    payoffDateDisplay.textContent = calculatePayoffDate(extraPaymentAmortization.months);
+                }
+            }
+
+            // --- Update Visualizations ---
+            const isDark = document.documentElement.classList.contains('dark');
+            updateChartOptions(isDark); // FIX: Update chart colors based on theme
+
+            updatePaymentChart(loanAmount, totalInterest);
+            updateAmortizationChart(standardAmortization.yearlyBalances, extraPaymentAmortization ? extraPaymentAmortization.yearlyBalances : null);
+            updateAmortizationTable(standardAmortization, extraPaymentAmortization);
+        }
+
+
+        // --- Charting Functions ---
+
+        // Helper to get theme-based colors
+        function getThemeColors() {
+            const isDark = document.documentElement.classList.contains('dark');
+            return {
+                textColor: isDark ? '#e2e8f0' : '#4a5568', // Light gray / Dark gray-blue
+                gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                borderColor: isDark ? '#1f2937' : '#ffffff', // Darker bg / White
+                primaryColor: getComputedStyle(document.documentElement).getPropertyValue('--primary-color') || '#5D5CDE',
+                extraPaymentColor: '#4CAF50', // Green for extra payments
+                interestColor: '#FFA500' // Orange for interest
+            };
+        }
+
+        function initializeCharts() {
+            const colors = getThemeColors();
+
+            // Configure and create the payment breakdown chart
+            paymentChart = new Chart(paymentChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Principal', 'Interest'],
+                    datasets: [{
+                        data: [1, 1], // Initial dummy data
+                        backgroundColor: [colors.primaryColor, colors.interestColor],
+                        borderColor: colors.borderColor,
+                        borderWidth: 2 // Increased border width slightly
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allow height control via canvas attribute
+                    cutout: '60%', // Make it a bit thinner doughnut
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: colors.textColor,
+                                padding: 20 // Add padding
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    return `${label}: $${formatCurrency(value)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Configure and create the amortization chart
+            amortizationChart = new Chart(amortizationChartCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Remaining Balance (Standard)',
+                            data: [],
+                            borderColor: colors.primaryColor,
+                            backgroundColor: hexToRgba(colors.primaryColor, 0.1),
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 0, // Hide points for cleaner line
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Remaining Balance (w/ Extra)',
+                            data: [],
+                            borderColor: colors.extraPaymentColor,
+                            backgroundColor: hexToRgba(colors.extraPaymentColor, 0.1),
+                            fill: true,
+                            tension: 0.1,
+                            borderDash: [5, 5],
+                            hidden: true, // Initially hidden
+                            pointRadius: 0,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: colors.textColor,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index', // Show tooltips for both lines at the same x-index
+                            intersect: false,
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.raw;
+                                    return `${label}: $${formatCurrency(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year',
+                                color: colors.textColor
+                            },
+                            ticks: {
+                                color: colors.textColor,
+                                maxTicksLimit: 10 // Limit number of x-axis ticks
+                            },
+                            grid: {
+                                color: colors.gridColor,
+                                // display: false // Optionally hide vertical grid lines
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Remaining Balance',
+                                color: colors.textColor
+                            },
+                            ticks: {
+                                // Format y-axis ticks as $Xk
+                                callback: function (value) {
+                                    if (value >= 1000) return '$' + (value / 1000) + 'k';
+                                    if (value > 0) return '$' + value; // Show smaller values directly
+                                    if (value === 0) return '$0';
+                                    return ''; // Avoid negative ticks if any precision issue
+                                },
+                                color: colors.textColor
+                            },
+                            grid: {
+                                color: colors.gridColor
+                            },
+                            beginAtZero: true // Ensure Y axis starts at 0
+                        }
+                    }
+                }
+            });
+        }
+
+        // FIX: Function to update chart options based on theme
+        function updateChartOptions(isDark) {
+            const colors = getThemeColors();
+
+            // Update Payment Chart Options
+            if (paymentChart) {
+                paymentChart.options.plugins.legend.labels.color = colors.textColor;
+                paymentChart.data.datasets[0].borderColor = colors.borderColor;
+                paymentChart.update('none'); // Update without animation
+            }
+
+            // Update Amortization Chart Options
+            if (amortizationChart) {
+                amortizationChart.options.plugins.legend.labels.color = colors.textColor;
+                amortizationChart.options.scales.x.title.color = colors.textColor;
+                amortizationChart.options.scales.x.ticks.color = colors.textColor;
+                amortizationChart.options.scales.x.grid.color = colors.gridColor;
+                amortizationChart.options.scales.y.title.color = colors.textColor;
+                amortizationChart.options.scales.y.ticks.color = colors.textColor;
+                amortizationChart.options.scales.y.grid.color = colors.gridColor;
+                amortizationChart.update('none'); // Update without animation
+            }
+        }
+
+        function updatePaymentChart(principal, interest) {
+            if (!paymentChart) return;
+            // Ensure values are non-negative for the chart
+            const displayPrincipal = Math.max(0, principal);
+            const displayInterest = Math.max(0, interest);
+
+            paymentChart.data.datasets[0].data = [displayPrincipal, displayInterest];
+            // Ensure colors are set correctly (in case theme changed without full recalc)
+            const colors = getThemeColors();
+            paymentChart.data.datasets[0].backgroundColor = [colors.primaryColor, colors.interestColor];
+            paymentChart.data.datasets[0].borderColor = colors.borderColor;
+
+            paymentChart.update();
+        }
+
+        function updateAmortizationChart(standardBalances, extraBalances) {
+            if (!amortizationChart) return;
+            // Generate labels based on the longest schedule
+            const maxYears = Math.max(standardBalances.length, extraBalances ? extraBalances.length : 0);
+            const labels = Array.from({ length: maxYears }, (_, i) => i + 1); // Years 1, 2, ...
+
+            // Add starting point (Year 0, Initial Balance) for a smoother start
+            const initialBalance = parseFloat(loanAmountSlider.value);
+            const chartLabels = [0, ...labels];
+            const standardData = [initialBalance, ...standardBalances];
+
+
+            amortizationChart.data.labels = chartLabels;
+            amortizationChart.data.datasets[0].data = standardData;
+
+
+            if (extraBalances) {
+                const extraData = [initialBalance, ...extraBalances];
+                // Pad shorter array to match length for chart display
+                while (extraData.length < standardData.length) {
+                    // Find last non-zero balance
+                    const lastBalance = extraData.slice().reverse().find(b => b > 0.01); // Find last meaningful balance
+                    extraData.push(lastBalance !== undefined ? lastBalance : 0); // Carry forward last balance or 0
+                }
+                amortizationChart.data.datasets[1].data = extraData;
+                amortizationChart.data.datasets[1].hidden = false;
+            } else {
+                amortizationChart.data.datasets[1].data = []; // Clear data
+                amortizationChart.data.datasets[1].hidden = true;
+            }
+
+            // Ensure colors are set correctly
+            const colors = getThemeColors();
+            amortizationChart.data.datasets[0].borderColor = colors.primaryColor;
+            amortizationChart.data.datasets[0].backgroundColor = hexToRgba(colors.primaryColor, 0.1);
+            amortizationChart.data.datasets[1].borderColor = colors.extraPaymentColor;
+            amortizationChart.data.datasets[1].backgroundColor = hexToRgba(colors.extraPaymentColor, 0.1);
+
+            amortizationChart.update();
+        }
+
+        // --- Amortization Calculation Logic ---
+        function calculateAmortizationSchedule(loanAmount, interestRate, loanTerm, extraPayment, baseMonthlyPayment) {
+            const monthlyInterestRate = interestRate / 100 / 12;
+            const maxPayments = loanTerm * 12 * 2; // Safety limit increased slightly
+
+            let balance = loanAmount;
+            let totalInterestPaid = 0;
+            let month = 0;
+
+            const monthlyData = [];
+            const yearlyBalances = [];
+
+            while (balance > 0.01 && month < maxPayments) { // Use a small threshold for balance check
+                month++;
+
+                const interestForMonth = balance * monthlyInterestRate;
+                totalInterestPaid += interestForMonth;
+
+                // Principal part of the standard payment
+                let principalFromStandardPayment = baseMonthlyPayment - interestForMonth;
+                // Ensure principal is not negative if interest exceeds payment (shouldn't happen with correct formula)
+                if (principalFromStandardPayment < 0) principalFromStandardPayment = 0;
+
+                // Total payment for the month
+                const totalMonthlyPayment = baseMonthlyPayment + extraPayment;
+
+                // Actual principal paid this month
+                let principalPaid = principalFromStandardPayment + extraPayment;
+
+                // Adjust final payment
+                if (balance + interestForMonth <= totalMonthlyPayment) {
+                    principalPaid = balance; // Pay off remaining balance
+                    // Adjust interest for final payment if needed, though usually small diff
+                    // totalInterestPaid -= interestForMonth;
+                    // totalInterestPaid += balance * monthlyInterestRate; // Recalculate interest on remaining
+                    // Handled implicitly by balance reduction
+                }
+
+                // Ensure principal paid doesn't exceed remaining balance
+                if (principalPaid > balance) {
+                    principalPaid = balance;
+                }
+
+                balance -= principalPaid;
+
+                // Store data (round balance for storage/display consistency)
+                const currentBalance = Math.max(0, balance); // Ensure balance doesn't go negative
+                monthlyData.push({
+                    month,
+                    principalPayment: principalPaid,
+                    interestPayment: interestForMonth,
+                    balance: currentBalance
+                });
+
+                // Store end-of-year balance for the chart
+                if (month % 12 === 0 || currentBalance === 0) {
+                    // Don't add year if balance was already zero previously
+                    if (yearlyBalances.length === 0 || yearlyBalances[yearlyBalances.length - 1] > 0) {
+                        yearlyBalances.push(currentBalance);
+                    }
+                }
+                // Break if balance is paid off
+                if (currentBalance === 0) {
+                    // If the last payment was mid-year, ensure the final zero balance is recorded for the chart
+                    if (month % 12 !== 0 && (yearlyBalances.length === 0 || yearlyBalances[yearlyBalances.length - 1] > 0)) {
+                        yearlyBalances.push(0);
+                    }
+                    break;
+                }
+            }
+
+            // Ensure yearlyBalances covers the full original term if paid off early for comparison chart
+            // while (yearlyBalances.length < loanTerm) {
+            //    yearlyBalances.push(0); // Pad with zeros if paid off early - decided against this for chart clarity
+            //}
+
+
+            return {
+                monthlyData,
+                yearlyBalances, // Array of end-of-year balances
+                totalInterest: totalInterestPaid,
+                months: month // Actual number of months to pay off
+            };
+        }
+
+        // --- Amortization Table Update ---
+        function updateAmortizationTable(standardAmortization, extraAmortization) {
+            amortizationTableBody.innerHTML = ''; // Clear previous rows
+            amortDetailedNote.classList.add('hidden'); // Hide detailed note initially
+
+            // Determine the maximum number of years to display based on available data
+            const maxStandardYears = Math.ceil(standardAmortization.months / 12);
+            const maxExtraYears = extraAmortization ? Math.ceil(extraAmortization.months / 12) : 0;
+            const displayYears = Math.max(maxStandardYears, showingSavings ? maxExtraYears : 0);
+
+            // Update headers based on view
+            amortHeaderPeriod.textContent = isDetailedView ? 'Month' : 'Year';
+            savingsHeader.classList.toggle('hidden', !showingSavings || !extraAmortization);
+
+
+            if (isDetailedView) {
+                // --- Detailed Monthly View ---
+                const monthsToDisplay = standardAmortization.monthlyData.length; // Show all months calculated
+
+                for (let i = 0; i < monthsToDisplay; i++) {
+                    const data = standardAmortization.monthlyData[i];
+                    // Get corresponding extra payment data if available and needed
+                    const extraData = (showingSavings && extraAmortization && i < extraAmortization.monthlyData.length)
+                        ? extraAmortization.monthlyData[i]
+                        : null;
+
+                    const row = amortizationTableBody.insertRow();
+                    row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 ease-in-out';
+
+                    row.innerHTML = `
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">${i + 1}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(data.principalPayment)}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(data.interestPayment)}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(data.balance)}</td>
+                        ${showingSavings ? `
+                        <td class="px-3 py-2 whitespace-nowrap text-sm ${extraData ? '' : 'text-gray-400 dark:text-gray-600'}">
+                            ${extraData ? '$' + formatCurrency(extraData.balance) : 'Paid Off'}
+                        </td>
+                        ` : ''}
+                    `;
+                }
+                // Show note if detailed view is active (optional)
+                // amortDetailedNote.classList.remove('hidden');
+
+            } else {
+                // --- Yearly Aggregated View ---
+                let yearlyPrincipal = 0;
+                let yearlyInterest = 0;
+                let extraYearlyPrincipal = 0; // For potential future use
+                let extraYearlyInterest = 0; // For potential future use
+
+                for (let year = 1; year <= displayYears; year++) {
+                    yearlyPrincipal = 0;
+                    yearlyInterest = 0;
+                    let endOfYearBalance = 0;
+                    let endOfYearBalanceExtra = null; // Null indicates not applicable or paid off
+
+                    // Aggregate standard data for the year
+                    const startMonth = (year - 1) * 12;
+                    const endMonth = Math.min(year * 12, standardAmortization.monthlyData.length);
+                    for (let i = startMonth; i < endMonth; i++) {
+                        yearlyPrincipal += standardAmortization.monthlyData[i].principalPayment;
+                        yearlyInterest += standardAmortization.monthlyData[i].interestPayment;
+                    }
+                    // Get balance at the end of the year (or last available month)
+                    if (endMonth > 0) {
+                        endOfYearBalance = standardAmortization.monthlyData[endMonth - 1].balance;
+                    }
+
+
+                    // Aggregate extra payment data if applicable and showing savings
+                    if (showingSavings && extraAmortization) {
+                        const extraEndMonth = Math.min(year * 12, extraAmortization.monthlyData.length);
+                        if (extraEndMonth > 0 && startMonth < extraAmortization.monthlyData.length) {
+                            // Only show balance if the loan wasn't already paid off before this year started
+                            endOfYearBalanceExtra = extraAmortization.monthlyData[extraEndMonth - 1].balance;
+                        } else if (extraAmortization.months <= startMonth) {
+                            // Loan was paid off in a previous year with extra payments
+                            endOfYearBalanceExtra = 0; // Represent as paid off
+                        }
+                    }
+
+
+                    const row = amortizationTableBody.insertRow();
+                    row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 ease-in-out';
+                    // Highlight row if it only exists due to extra payment schedule being longer (shouldn't happen now)
+                    // const highlightClass = (!standardDataExistsForYear && extraDataExistsForYear) ? 'bg-green-50 dark:bg-green-900/20' : '';
+                    // row.className += ` ${highlightClass}`;
+
+
+                    row.innerHTML = `
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">Year ${year}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(yearlyPrincipal, 0)}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(yearlyInterest, 0)}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-sm">$${formatCurrency(endOfYearBalance, 0)}</td>
+                        ${showingSavings ? `
+                        <td class="px-3 py-2 whitespace-nowrap text-sm ${endOfYearBalanceExtra !== null ? '' : 'text-gray-400 dark:text-gray-600'}">
+                             ${endOfYearBalanceExtra !== null ? '$' + formatCurrency(endOfYearBalanceExtra, 0) : (endOfYearBalance > 0 ? 'N/A' : 'Paid Off')}
+                         </td>
+                        ` : ''}
+                    `;
+                }
+            }
+        }
+
+
+        // --- View Toggles ---
+
+        function toggleDetailedView() {
+            isDetailedView = !isDetailedView;
+            const button = document.getElementById('toggleDetailedView');
+            const otherButton = document.getElementById('amortizationToggleSavingsBtn'); // Peer button
+
+            button.textContent = isDetailedView ? 'Yearly View' : 'Detailed View';
+            // Swap styles to indicate active state
+            button.classList.toggle('bg-primary', isDetailedView);
+            button.classList.toggle('hover:bg-primary_dark', isDetailedView);
+            button.classList.toggle('dark:bg-primary_light', isDetailedView);
+            button.classList.toggle('dark:hover:bg-primary', isDetailedView);
+            button.classList.toggle('text-white', isDetailedView);
+            button.classList.toggle('bg-gray-200', !isDetailedView);
+            button.classList.toggle('hover:bg-gray-300', !isDetailedView);
+            button.classList.toggle('dark:bg-gray-700', !isDetailedView);
+            button.classList.toggle('dark:hover:bg-gray-600', !isDetailedView);
+            button.classList.toggle('text-gray-800', !isDetailedView);
+            button.classList.toggle('dark:text-gray-200', !isDetailedView);
+
+            calculateAndUpdateUI(); // Recalculate to update the table format
+        }
+
+        function toggleSavingsView() {
+            showingSavings = !showingSavings;
+            const button = document.getElementById('amortizationToggleSavingsBtn');
+            const otherButton = document.getElementById('toggleDetailedView'); // Peer button
+
+            button.textContent = showingSavings ? 'Hide Savings' : 'Show Savings';
+            // Swap styles to indicate active state
+            button.classList.toggle('bg-primary', showingSavings);
+            button.classList.toggle('hover:bg-primary_dark', showingSavings);
+            button.classList.toggle('dark:bg-primary_light', showingSavings);
+            button.classList.toggle('dark:hover:bg-primary', showingSavings);
+            button.classList.toggle('text-white', showingSavings);
+            button.classList.toggle('bg-gray-200', !showingSavings);
+            button.classList.toggle('hover:bg-gray-300', !showingSavings);
+            button.classList.toggle('dark:bg-gray-700', !showingSavings);
+            button.classList.toggle('dark:hover:bg-gray-600', !showingSavings);
+            button.classList.toggle('text-gray-800', !showingSavings);
+            button.classList.toggle('dark:text-gray-200', !showingSavings);
+
+
+            calculateAndUpdateUI(); // Recalculate to update table columns
+        }
+
+        // FIX: Renamed function for clarity, simplified
+        // Only toggles visibility, main calc function reads checkbox state
+        function handleExtraPaymentToggle(triggerCalc = true) {
+            const isChecked = extraPaymentToggle.checked;
+            extraPaymentSection.classList.toggle('hidden', !isChecked);
+            extraPaymentSlider.disabled = !isChecked; // Ensure slider is enabled/disabled
+
+            // No longer need to call calculateAndUpdateUI here directly,
+            // the 'change' listener on the toggle does that.
+            // Unless called initially with triggerCalc = false
+            if (triggerCalc) {
+                calculateAndUpdateUI();
+            }
+        }
+
+        // --- Comparison Logic ---
+        function addComparison() {
+            // Get current loan parameters
+            const loanAmount = parseFloat(loanAmountSlider.value);
+            const interestRate = parseFloat(interestRateSlider.value);
+            const loanTerm = parseInt(loanTermSlider.value);
+            const useExtraPayment = extraPaymentToggle.checked;
+            const extraPayment = useExtraPayment ? parseFloat(extraPaymentSlider.value) : 0;
+
+            // Basic validation
+            if (isNaN(loanAmount) || isNaN(interestRate) || isNaN(loanTerm) || loanAmount <= 0 || interestRate <= 0 || loanTerm <= 0) {
+                alert("Cannot save invalid loan parameters.");
+                return;
+            }
+
+            // Calculate monthly payment and total interest for the comparison entry (always use standard calculation here)
+            const monthlyInterestRate = interestRate / 100 / 12;
+            const totalPayments = loanTerm * 12;
+            let monthlyPayment = 0;
+            if (monthlyInterestRate === 0) {
+                monthlyPayment = loanAmount / totalPayments;
+            } else {
+                monthlyPayment = (loanAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, totalPayments)) /
+                    (Math.pow(1 + monthlyInterestRate, totalPayments) - 1);
+            }
+
+
+            // Calculate total interest using the standard amortization (no extra payments considered for this saved value)
+            const standardAmortization = calculateAmortizationSchedule(loanAmount, interestRate, loanTerm, 0, monthlyPayment);
+            const totalInterest = standardAmortization.totalInterest;
+
+            // Create scenario object
+            const scenario = {
+                id: nextScenarioId++,
+                loanAmount,
+                interestRate,
+                loanTerm,
+                monthlyPayment, // Base monthly payment
+                totalInterest, // Total interest without extra payments
+                extraPayment: useExtraPayment ? extraPayment : 0 // Store the extra payment setting
+            };
+
+            // Add to scenarios array
+            scenarios.push(scenario);
+            // saveScenariosToStorage(); // Optional: Persist scenarios
+            updateComparisonTable();
+        }
+
+        function updateComparisonTable() {
+            comparisonTableBody.innerHTML = ''; // Clear table
+
+            // Show/hide table and message
+            if (scenarios.length === 0) {
+                noComparisonMessageElem.classList.remove('hidden');
+                comparisonTableBody.classList.add('hidden'); // Hide tbody too
+                return;
+            } else {
+                noComparisonMessageElem.classList.add('hidden');
+                comparisonTableBody.classList.remove('hidden');
+            }
+
+            // Add rows for each scenario
+            scenarios.forEach((scenario, index) => {
+                const row = comparisonTableBody.insertRow();
+                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 ease-in-out';
+
+                // Display monthly payment. Add note if extra payment was saved with it.
+                let paymentDisplay = `$${formatCurrency(scenario.monthlyPayment)}`;
+                if (scenario.extraPayment > 0) {
+                    paymentDisplay += ` (+ $${scenario.extraPayment.toLocaleString()} extra)`;
+                }
+
+
+                row.innerHTML = `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">${index + 1}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">$${scenario.loanAmount.toLocaleString()}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">${scenario.interestRate.toFixed(2)}%</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">${scenario.loanTerm} years</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">${paymentDisplay}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">$${formatCurrency(scenario.totalInterest, 0)}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm">
+                        <button class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 mr-2 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50"
+                                title="Remove Scenario"
+                                onclick="removeScenario(${scenario.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <button class="text-primary hover:text-primary_dark dark:text-primary_light dark:hover:text-primary p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                                title="Load Scenario"
+                                onclick="loadScenario(${scenario.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                             </svg>
+                        </button>
+                    </td>
+                `;
+            });
+        }
+
+        function removeScenario(id) {
+            scenarios = scenarios.filter(scenario => scenario.id !== id);
+            // saveScenariosToStorage(); // Optional: Persist change
+            updateComparisonTable();
+        }
+
+        function loadScenario(id) {
+            const scenario = scenarios.find(s => s.id === id);
+            if (!scenario) return;
+
+            // Update sliders with scenario values using the visual update function
+            loanAmountSlider.value = scenario.loanAmount;
+            updateSliderVisuals(loanAmountSlider, false); // Update visual only
+
+            interestRateSlider.value = scenario.interestRate;
+            updateSliderVisuals(interestRateSlider, false);
+
+            loanTermSlider.value = scenario.loanTerm;
+            updateSliderVisuals(loanTermSlider, false);
+
+            // Set extra payment toggle and slider
+            if (scenario.extraPayment > 0) {
+                extraPaymentToggle.checked = true;
+                extraPaymentSlider.value = scenario.extraPayment;
+                updateSliderVisuals(extraPaymentSlider, false);
+            } else {
+                extraPaymentToggle.checked = false;
+                // Optional: Reset extra payment slider value if desired when loading a scenario without it
+                // extraPaymentSlider.value = 0;
+                // updateSliderVisuals(extraPaymentSlider, false);
+            }
+            // Ensure extra payment section visibility and slider disabled state are correct
+            handleExtraPaymentToggle(false); // Update visibility/disabled state only
+
+            // Finally, trigger a full UI update and recalculation
+            calculateAndUpdateUI();
+
+            // Scroll to top of calculator for better UX after loading
+            loanAmountSlider.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // --- Utility Functions ---
+        function formatCurrency(value, digits = 2) {
+            if (isNaN(value)) return '-.--';
+            return Number(value).toLocaleString(undefined, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            });
+        }
+
+        function calculatePayoffDate(totalMonths) {
+            const today = new Date();
+            const payoffDate = new Date(today);
+            payoffDate.setMonth(today.getMonth() + totalMonths);
+            // Adjust for potential day overflow if needed (e.g., adding 1 month to Jan 31st)
+            // payoffDate.setDate(Math.min(today.getDate(), daysInMonth(payoffDate.getFullYear(), payoffDate.getMonth())));
+
+            const payoffMonth = payoffDate.toLocaleString('default', { month: 'short' });
+            const payoffYear = payoffDate.getFullYear();
+            return `${payoffMonth} ${payoffYear}`;
+        }
+
+        function formatMonthsSaved(monthsSaved) {
+            if (monthsSaved <= 0) return "0 months";
+
+            const yearsSaved = Math.floor(monthsSaved / 12);
+            const remainingMonths = monthsSaved % 12;
+
+            let text = '';
+            if (yearsSaved > 0) {
+                text += `${yearsSaved} year${yearsSaved > 1 ? 's' : ''}`;
+            }
+            if (remainingMonths > 0) {
+                text += `${yearsSaved > 0 ? ', ' : ''}${remainingMonths} month${remainingMonths > 1 ? 's' : ''}`;
+            }
+            return text || "0 months"; // Fallback
+        }
+
+        // Helper to convert hex color to rgba for chart backgrounds
+        function hexToRgba(hex, alpha = 1) {
+            let r = 0, g = 0, b = 0;
+            if (hex.length == 4) { // Expand shorthand hex
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            } else if (hex.length == 7) {
+                r = parseInt(hex.slice(1, 3), 16);
+                g = parseInt(hex.slice(3, 5), 16);
+                b = parseInt(hex.slice(5, 7), 16);
+            } else {
+                // Default or error color if hex is invalid
+                return `rgba(93, 92, 222, ${alpha})`; // Default to primary color
+            }
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Optional: Local Storage for Scenarios
+        // function saveScenariosToStorage() {
+        //     localStorage.setItem('loanScenarios', JSON.stringify(scenarios));
+        // }
+        // function loadScenariosFromStorage() {
+        //    const savedScenarios = localStorage.getItem('loanScenarios');
+        //     if (savedScenarios) {
+        //         scenarios = JSON.parse(savedScenarios);
+        //         // Find the highest ID to continue numbering correctly
+        //         nextScenarioId = scenarios.reduce((maxId, s) => Math.max(maxId, s.id), 0) + 1;
+        //    }
+        // }
+
+    </script>
+</body>
+
+</html>
